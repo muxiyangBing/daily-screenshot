@@ -1,7 +1,8 @@
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
+from email.mime.base import MIMEBase
+from email import encoders
 from playwright.sync_api import sync_playwright
 from datetime import datetime
 import sys
@@ -19,20 +20,17 @@ def take_screenshot():
         page.goto(REPORT_URL)
         page.wait_for_load_state("networkidle")
 
-        # --- 登录（使用你提供的精确选择器） ---
+        # --- 登录 ---
         try:
-            # 等待用户名输入框出现（最多等10秒）
             page.wait_for_selector('input[placeholder="用户名"]', timeout=10000)
             page.fill('input[placeholder="用户名"]', USERNAME)
             page.fill('input[placeholder="密码"]', PASSWORD)
-            # 点击登录按钮（div 类名为 login-button）
             page.click('div.login-button')
-            # 等待登录完成并跳转回报表
             page.wait_for_load_state("networkidle")
         except Exception as e:
             print(f"登录过程异常（可能已保持登录态）: {e}")
 
-        # --- 等待报表动态数据加载 ---
+        # --- 等待报表数据加载 ---
         page.wait_for_timeout(10000)
 
         img_bytes = page.screenshot(full_page=True)
@@ -50,7 +48,7 @@ def send_email(img_bytes):
     msg["From"] = sender
     msg["To"] = sender
 
-    # --- 明确构建图片附件，防止被QQ邮箱重命名 ---
+    # 构建图片附件，指定文件名
     part = MIMEBase("application", "octet-stream")
     part.set_payload(img_bytes)
     encoders.encode_base64(part)
