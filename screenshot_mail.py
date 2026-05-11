@@ -45,14 +45,20 @@ def send_email(img_bytes):
     smtp_server = os.environ.get("SMTP_SERVER", "smtp.qq.com")
     smtp_port = int(os.environ.get("SMTP_PORT", 465))
 
-    msg = MIMEMultipart("related")
+    msg = MIMEMultipart("mixed")
     msg["Subject"] = f"每日报表截图 - {datetime.now().strftime('%Y-%m-%d')}"
     msg["From"] = sender
     msg["To"] = sender
 
-    img = MIMEImage(img_bytes, _subtype="png")
-    img.add_header("Content-ID", "<daily_report>")
-    msg.attach(img)
+    # --- 明确构建图片附件，防止被QQ邮箱重命名 ---
+    part = MIMEBase("application", "octet-stream")
+    part.set_payload(img_bytes)
+    encoders.encode_base64(part)
+    part.add_header(
+        "Content-Disposition",
+        "attachment; filename=report_screenshot.png",
+    )
+    msg.attach(part)
 
     with smtplib.SMTP_SSL(smtp_server, smtp_port) as server:
         server.login(sender, password)
