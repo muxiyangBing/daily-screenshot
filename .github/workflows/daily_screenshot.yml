@@ -36,4 +36,5 @@ jobs:
           REPORT_URL: ${{ secrets.REPORT_URL }}
           FR_USERNAME: ${{ secrets.FR_USERNAME }}
           FR_PASSWORD: ${{ secrets.FR_PASSWORD }}
+          RECIPIENT_EMAIL: ${{ secrets.RECIPIENT_EMAIL }}   # ← 新增企微邮箱
         run: python screenshot_mail.py
