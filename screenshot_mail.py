@@ -6,7 +6,6 @@ from playwright.sync_api import sync_playwright
 from datetime import datetime
 import sys
 
-# ── 配置从环境变量读取 ──
 REPORT_URL = os.environ["REPORT_URL"]
 USERNAME   = os.environ["FR_USERNAME"]
 PASSWORD   = os.environ["FR_PASSWORD"]
@@ -17,35 +16,25 @@ def take_screenshot():
         context = browser.new_context()
         page = context.new_page()
 
-        # 1. 访问报表地址（通常会自动跳转到登录页）
         page.goto(REPORT_URL)
         page.wait_for_load_state("networkidle")
 
-        # 2. 登录表单：请根据实际页面调整选择器
-        #    常见 FineReport 登录页：
-        #    用户名字段: input[name="username"] 或 input[placeholder*="用户名"]
-        #    密码字段:   input[name="password"] 或 input[type="password"]
-        #    登录按钮:   button[type="submit"] 或 button:has-text("登录")
-        #
-        #    ⚠️ 下面的选择器是通用猜测，若无效请按注释修改
+        # --- 登录（使用你提供的精确选择器） ---
         try:
-            page.wait_for_selector('input[name="username"]', timeout=10000)
-            page.fill('input[name="username"]', USERNAME)
-            page.fill('input[name="password"]', PASSWORD)
-            page.click('button[type="submit"]')
+            # 等待用户名输入框出现（最多等10秒）
+            page.wait_for_selector('input[placeholder="用户名"]', timeout=10000)
+            page.fill('input[placeholder="用户名"]', USERNAME)
+            page.fill('input[placeholder="密码"]', PASSWORD)
+            # 点击登录按钮（div 类名为 login-button）
+            page.click('div.login-button')
             # 等待登录完成并跳转回报表
             page.wait_for_load_state("networkidle")
         except Exception as e:
-            # 可能已经登录或页面无登录表单，继续往下
-            print(f"登录流程异常（可能已登录）: {e}")
+            print(f"登录过程异常（可能已保持登录态）: {e}")
 
-        # 3. 等待报表数据加载完成
-        #    方案A：等待报表内容容器出现（需要你根据实际替换选择器）
-        #    方案B：直接等待固定秒数，比如10秒
-        #    下面使用等待固定时间，如果数据加载慢可调大
-        page.wait_for_timeout(10000)  # 等待10秒，确保动态数据渲染完毕
+        # --- 等待报表动态数据加载 ---
+        page.wait_for_timeout(10000)
 
-        # 4. 截图
         img_bytes = page.screenshot(full_page=True)
         browser.close()
         return img_bytes
