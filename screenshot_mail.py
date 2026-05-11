@@ -50,8 +50,11 @@ def take_screenshot():
         # 5. 额外等2秒，确保样式完全加载
         page.wait_for_timeout(2000)
 
-        # 6. 全页截图
-        img_bytes = page.screenshot(full_page=True)
+        # 6. 等待报表表格出现，并仅截取该表格元素
+        page.wait_for_selector('table.x-table', timeout=10000)
+        table = page.locator('table.x-table')
+        img_bytes = table.screenshot()
+        
         browser.close()
         return img_bytes
 
