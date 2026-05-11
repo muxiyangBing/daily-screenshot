@@ -18,8 +18,8 @@ def get_beijing_time():
 
 def take_screenshot():
     now = get_beijing_time()
-    end_date_str = now.strftime('%Y-%m-%d')          # 今天 5.11 → "2026-05-11"
-    start_date_str = (now - timedelta(days=10)).strftime('%Y-%m-%d')  # 10天前 → "2026-05-01"
+    end_date_str = now.strftime('%Y-%m-%d')          # 例如 2026-05-11
+    start_date_str = (now - timedelta(days=10)).strftime('%Y-%m-%d')  # 例如 2026-05-01
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
@@ -42,50 +42,48 @@ def take_screenshot():
 
         page.wait_for_timeout(2000)
 
-        # 2. 用 JS 直接修改日期并触发查询
-        #    核心逻辑：找到 "开始日期"/"结束日期" 标签旁边的 sign-editor-text，替换文字
-        evaluate_script = f'''
-            (start, end) => {{
-                const labels = document.querySelectorAll('div.report-main-parameter-container-controller-label');
-                let changed = 0;
-                labels.forEach(label => {{
-                    const text = label.textContent.trim();
-                    // 定位目标日期控件：就是跟在标签后面第一个 datetime 容器
-                    let sibling = label.nextElementSibling;
-                    while (sibling && !sibling.matches('div.report-main-parameter-container-controller-datetime')) {{
-                        sibling = sibling.nextElementSibling;
-                    }}
-                    if (sibling) {{
-                        const editor = sibling.querySelector('div.sign-editor-text');
-                        if (editor) {{
-                            if (text === '开始日期') {{
-                                editor.textContent = '{start_date_str}';
-                                editor.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                                changed++;
-                            }} else if (text === '结束日期') {{
-                                editor.textContent = '{end_date_str}';
-                                editor.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                                changed++;
-                            }}
-                        }}
-                    }}
-                }});
-                return changed;
-            }}
-        '''
-        try:
-            changed_count = page.evaluate(evaluate_script)
-            print(f'日期显示已修改，共修改 {changed_count} 个控件')
-        except Exception as e:
-            print(f'日期修改失败: {e}')
+        # 2. 用键盘模拟输入修改开始日期和结束日期
+        #    定位开始日期的输入区域（div.sign-editor-text）
+        start_locator = page.locator(
+            'div.report-main-parameter-container-controller-label:has-text("开始日期") '
+            '+ div.report-main-parameter-container-controller-datetime '
+            'div.sign-editor-text'
+        )
+        end_locator = page.locator(
+            'div.report-main-parameter-container-controller-label:has-text("结束日期") '
+            '+ div.report-main-parameter-container-controller-datetime '
+            'div.sign-editor-text'
+        )
 
-        # 3. 点击查询按钮（id 唯一）
+        try:
+            # 修改开始日期
+            start_locator.click()
+            page.keyboard.press('Control+A')   # 全选
+            page.keyboard.type(start_date_str)
+            page.keyboard.press('Enter')       # 确认输入
+            page.wait_for_timeout(500)         # 稍等控件反应
+            print(f"开始日期已输入: {start_date_str}")
+        except Exception as e:
+            print(f"修改开始日期失败: {e}")
+
+        try:
+            # 修改结束日期
+            end_locator.click()
+            page.keyboard.press('Control+A')
+            page.keyboard.type(end_date_str)
+            page.keyboard.press('Enter')
+            page.wait_for_timeout(500)
+            print(f"结束日期已输入: {end_date_str}")
+        except Exception as e:
+            print(f"修改结束日期失败: {e}")
+
+        # 3. 点击查询按钮
         try:
             page.click('#fr-btn-SEARCH')
             page.wait_for_load_state("networkidle")
             print("已点击查询按钮")
         except Exception as e:
-            print(f'点击查询按钮失败: {e}')
+            print(f"点击查询按钮失败: {e}")
 
         # 4. 等待数据加载完成（遮罩 + 总计行）
         try:
