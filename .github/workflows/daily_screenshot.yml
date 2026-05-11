@@ -2,9 +2,8 @@ name: 每日网页截图并邮件
 
 on:
   schedule:
-    # UTC 1:00 对应北京时间 9:00
-    - cron: '0 1 * * *'
-  workflow_dispatch:   # 允许手动运行一次测试
+    - cron: '0 1 * * *'  # 北京时间 9:25
+  workflow_dispatch:
 
 jobs:
   screenshot:
@@ -25,8 +24,13 @@ jobs:
 
       - name: 执行脚本
         env:
+          # 邮箱配置
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           SMTP_SERVER: smtp.qq.com
           SMTP_PORT: 465
+          # 报表登录信息
+          REPORT_URL: ${{ secrets.REPORT_URL }}
+          FR_USERNAME: ${{ secrets.FR_USERNAME }}
+          FR_PASSWORD: ${{ secrets.FR_PASSWORD }}
         run: python screenshot_mail.py
