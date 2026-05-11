@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from playwright.sync_api import sync_playwright
-from datetime import datetime
+from datetime import datetime, timedelta
 import sys
 
 REPORT_URL = os.environ["REPORT_URL"]
@@ -65,7 +65,7 @@ def send_email(img_bytes):
     smtp_port = int(os.environ.get("SMTP_PORT", 465))
 
     msg = MIMEMultipart("mixed")
-    msg["Subject"] = f"每日报表截图 - {datetime.now().strftime('%Y-%m-%d')}"
+    msg["Subject"] = f"每日报表截图 - {(datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')}日报"
     msg["From"] = sender
     msg["To"] = sender
 
