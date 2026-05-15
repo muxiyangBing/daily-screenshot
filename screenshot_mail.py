@@ -91,11 +91,6 @@ def send_email(img_bytes):
         server.sendmail(sender, sender, msg.as_string())
 
 if __name__ == "__main__":
-    # 时间守卫：非允许时段直接退出
-    if not is_valid_run_time():
-        print("当前不在允许运行时段（北京时间5:00~10:00），退出。")
-        sys.exit(0)
-
     try:
         img = take_screenshot()
         send_email(img)
