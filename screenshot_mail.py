@@ -11,10 +11,18 @@ REPORT_URL = os.environ["REPORT_URL"]
 USERNAME   = os.environ["FR_USERNAME"]
 PASSWORD   = os.environ["FR_PASSWORD"]
 
+def get_beijing_time():
+    """获取当前北京时间"""
+    return datetime.now() + timedelta(hours=8)
+
+def is_valid_run_time():
+    """只有北京时间 5:00 ~ 9:59 才允许运行"""
+    now = get_beijing_time()
+    return now.hour >= 5 and now.hour < 10   # 5点到10点之间（不含10点整）
+
 def take_screenshot():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # 🆕 设置视口宽度，确保完整显示宽报表
         context = browser.new_context(viewport={'width': 1920, 'height': 1080})
         page = context.new_page()
 
@@ -54,7 +62,7 @@ def take_screenshot():
         page.wait_for_selector('table.x-table', timeout=10000)
         table = page.locator('table.x-table')
         img_bytes = table.screenshot()
-        
+
         browser.close()
         return img_bytes
 
@@ -69,7 +77,6 @@ def send_email(img_bytes):
     msg["From"] = sender
     msg["To"] = sender
 
-    # 附件名为固定.png，避免QQ邮箱改名
     part = MIMEBase("application", "octet-stream")
     part.set_payload(img_bytes)
     encoders.encode_base64(part)
@@ -84,6 +91,11 @@ def send_email(img_bytes):
         server.sendmail(sender, sender, msg.as_string())
 
 if __name__ == "__main__":
+    # 时间守卫：非允许时段直接退出
+    if not is_valid_run_time():
+        print("当前不在允许运行时段（北京时间5:00~10:00），退出。")
+        sys.exit(0)
+
     try:
         img = take_screenshot()
         send_email(img)
